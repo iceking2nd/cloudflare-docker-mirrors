@@ -1,0 +1,23 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "cloudflare-docker-mirrors",
+	"main": "src/index.js",
+	"compatibility_date": "2025-06-07",
+	"compatibility_flags": ["nodejs_compat"],
+	"workers_dev": false,
+	"preview_urls": false,
+	"observability": {
+		"enabled": false
+	},
+	"env": {
+		"development": {
+			"vars": {
+				"DOMAIN": "company.dev.wxccs.org"
+			}
+		}
+	},
+	"dev": {
+		"ip": "0.0.0.0",
+		"port": 8787
+	}
+}
