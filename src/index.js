@@ -17,7 +17,8 @@ export default {
 			"podman",
 			"docker",
 			"curl",
-			"nexus"
+			"nexus",
+			"Buildah"
 		]
 
 		const client_allowed = ALLOWED_CLIENTS.find(client => request.headers.get("user-agent")?.toLowerCase().includes(client));
