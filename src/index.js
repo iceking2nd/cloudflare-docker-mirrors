@@ -18,7 +18,7 @@ export default {
 			"docker",
 			"curl",
 			"nexus",
-			"Buildah"
+			"buildah"
 		]
 
 		const client_allowed = ALLOWED_CLIENTS.find(client => request.headers.get("user-agent")?.toLowerCase().includes(client));
