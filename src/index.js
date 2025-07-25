@@ -23,7 +23,8 @@ export default {
 
 		const REDIRECT_DOMAINS = [
 			'cloudflarestorage.com',
-			's3.amazonaws.com'
+			's3.amazonaws.com',
+			'cloudflare.docker.com'
 		];
 
 		const client_allowed = ALLOWED_CLIENTS.find(client => request.headers.get('user-agent')?.toLowerCase().includes(client));
