@@ -14,6 +14,7 @@ export default {
 
 		const ALLOWED_CLIENTS = [
 			'containers',
+			'containerd',
 			'podman',
 			'docker',
 			'curl',
