@@ -9,7 +9,8 @@ export default {
 			['k8s.' + env.DOMAIN]: 'registry.k8s.io',
 			['nvcr.' + env.DOMAIN]: 'nvcr.io',
 			['cloudsmith.' + env.DOMAIN]: 'docker.cloudsmith.io',
-			['ecr.' + env.DOMAIN]: 'public.ecr.aws'
+			['ecr.' + env.DOMAIN]: 'public.ecr.aws',
+			['cloudfront-docker.' + env.DOMAIN]: 'production.cloudfront.docker.com'
 		};
 
 		const ALLOWED_CLIENTS = [
@@ -25,7 +26,8 @@ export default {
 		const REDIRECT_DOMAINS = [
 			'cloudflarestorage.com',
 			's3.amazonaws.com',
-			'cloudflare.docker.com'
+			'cloudflare.docker.com',
+			'production.cloudfront.docker.com'
 		];
 
 		const client_allowed = ALLOWED_CLIENTS.find(client => request.headers.get('user-agent')?.toLowerCase().includes(client));
@@ -69,7 +71,8 @@ export default {
 				key: 'docker.cloudsmith.io',
 				value: `cloudsmith.${env.DOMAIN}${requestUrl.port !== '' ? `:${requestUrl.port}` : ''}`
 			},
-			{ key: 'public.ecr.aws', value: `ecr.${env.DOMAIN}${requestUrl.port !== '' ? `:${requestUrl.port}` : ''}` }
+			{ key: 'public.ecr.aws', value: `ecr.${env.DOMAIN}${requestUrl.port !== '' ? `:${requestUrl.port}` : ''}` },
+			{ key: 'production.cloudfront.docker.com', value: `cloudfront-docker.${env.DOMAIN}${requestUrl.port !== '' ? `:${requestUrl.port}` : ''}` }
 		];
 
 		switch (DOMAINS[requestUrl.hostname]) {
