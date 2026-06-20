@@ -1,56 +1,142 @@
-# cloudflare-docker-mirrors
+# Cloudflare Workers — Docker Registry Mirror
 
-Cloudflare Worker that reverse-proxies multiple container registries through custom subdomains, making it easy to mirror Docker Hub and other registries behind your own domain.
+A transparent **Docker Registry V2** mirror proxy running on Cloudflare Workers.
+
+It routes by request `Host` to an upstream registry, enforces a client
+User-Agent allow-list, speaks the V2 protocol (Bearer token negotiation +
+transparent CDN redirect following), and caches nothing. Zero runtime
+dependencies — native Web API only.
+
+## Features
+
+- **Multi-registry mirror** behind a single apex domain, one subdomain per
+  upstream registry.
+- **Transparent V2 protocol** — handles Bearer token negotiation (`WWW-
+  Authenticate` challenge → token cache → retry) and follows signed CDN
+  redirects (e.g. Docker Hub → `production.cloudflare.docker.com`), dropping
+  credentials on cross-host hops.
+- **Client gate** — only allow-listed container client User-Agents pass
+  (`docker/`, `containerd/`, `podman/`, `skopeo/`, …); everything else gets
+  `400`.
+- **No caching** — every response is forced `no-cache, no-store,
+  must-revalidate`; no Cache API, no stored manifests/layer data.
+- **Zero dependencies**, TypeScript (`strict: true`), `nodejs_compat` enabled.
 
 ## Supported Registries
 
-| Subdomain | Upstream |
-|---|---|
-| `docker.{DOMAIN}` | `registry-1.docker.io` |
-| `auth-docker.{DOMAIN}` | `auth.docker.io` |
-| `quay.{DOMAIN}` | `quay.io` |
-| `gcr.{DOMAIN}` | `gcr.io` |
-| `ghcr.{DOMAIN}` | `ghcr.io` |
-| `k8s.{DOMAIN}` | `registry.k8s.io` |
-| `nvcr.{DOMAIN}` | `nvcr.io` |
-| `cloudsmith.{DOMAIN}` | `docker.cloudsmith.io` |
-| `ecr.{DOMAIN}` | `public.ecr.aws` |
-| `cloudfront-docker.{DOMAIN}` | `production.cloudfront.docker.com` |
+Only client-facing pull endpoints are exposed. Internal hosts reached via
+redirect during a Docker Hub pull (`auth.docker.io`,
+`production.cloudflare.docker.com`) are followed transparently by the worker
+and are **not** listed.
 
-## How It Works
+| Subdomain             | Upstream                     |
+|-----------------------|------------------------------|
+| `docker.{DOMAIN}`     | `registry-1.docker.io`       |
+| `quay.{DOMAIN}`       | `quay.io`                    |
+| `gcr.{DOMAIN}`        | `gcr.io`                     |
+| `ghcr.{DOMAIN}`       | `ghcr.io`                    |
+| `k8s.{DOMAIN}`        | `registry.k8s.io`            |
+| `nvcr.{DOMAIN}`       | `nvcr.io`                    |
+| `cloudsmith.{DOMAIN}` | `docker.cloudsmith.io`       |
+| `ecr.{DOMAIN}`        | `public.ecr.aws`             |
 
-1. **User-Agent filtering** — Only known container clients are allowed (`docker`, `containerd`, `podman`, `buildah`, `containers`, `curl`, `nexus`).
-2. **Domain mapping** — Request hostname is mapped to the upstream registry.
-3. **Path filtering** — Only `/v1/`, `/v2/`, `/token`, `/proxy_auth`, `/login` paths are proxied.
-4. **Docker Hub namespace rewrite** — Single-segment image names (e.g., `nginx`) automatically get the `library/` prefix in both paths and auth scopes.
-5. **Server-side redirect following** — Redirects to cloud storage domains (`cloudflarestorage.com`, `s3.amazonaws.com`, `cloudflare.docker.com`, `production.cloudfront.docker.com`) are followed server-side, avoiding exposure of storage URLs.
-6. **Response header rewriting** — `www-authenticate` headers are rewritten so auth flows route back through the mirror.
+Unknown host → `404 {"error":"Unknown registry"}`.
 
-## Setup
+## Configuration
 
-1. Set the `DOMAIN` environment variable in your wrangler config to your domain.
-2. Configure DNS records and Cloudflare routes for each `{registry}.{DOMAIN}` subdomain pointing to this Worker.
-3. Deploy:
+The apex domain is the **`DOMAIN`** environment variable, set in
+`wrangler.jsonc` under `vars`. Change it there and redeploy — no code change
+needed:
 
-```bash
-npm run deploy
+```jsonc
+{
+  "vars": {
+    "DOMAIN": "yourdomain.com"
+  }
+}
 ```
 
-For domain-specific deployments:
+- Subdomain prefixes and their upstream registries are **hardcoded** in
+  `UPSTREAM_PREFIXES` (`src/index.ts`).
+- No other environment variables are used.
+- Docker Hub official images get the `library/` prefix auto-rewritten
+  (`nginx` → `library/nginx`); this applies only to `registry-1.docker.io`.
+
+After changing any binding in `wrangler.jsonc`, regenerate types:
 
 ```bash
-npx wrangler deploy --config wrangler-<name>.jsonc
+npx wrangler types
 ```
 
-## Development
+## Usage
+
+Once deployed with `DOMAIN=yourdomain.com`, point your container client at the
+desired registry subdomain. For example, to pull from Docker Hub:
 
 ```bash
-npm install
-npm run dev      # Local dev server with development env vars (port 8787)
-npm start        # Local dev server without env override
-npm test         # Run tests
+# /etc/docker/daemon.json
+{
+  "registry-mirrors": ["https://docker.yourdomain.com"]
+}
 ```
+
+Then restart Docker and pull as usual:
+
+```bash
+docker pull nginx
+```
+
+Other registries are addressed directly by their subdomain:
+
+```bash
+docker pull ghcr.yourdomain.com/owner/image:tag
+docker pull gcr.yourdomain.com/project/image:tag
+docker pull quay.yourdomain.com/organization/image:tag
+```
+
+## Commands
+
+| Command              | Purpose                            |
+|----------------------|------------------------------------|
+| `npm run dev`        | Local development (`wrangler dev`) |
+| `npm run deploy`     | Deploy to Cloudflare               |
+| `npm test`           | Run vitest                         |
+| `npm run cf-typegen` | Regenerate `worker-configuration.d.ts` |
+
+## Architecture
+
+- **Single entry point:** `src/index.ts` — all logic lives here (no
+  third-party deps; native Web API only).
+- **Host routing:** `UPSTREAM_PREFIXES` maps a subdomain prefix to an upstream
+  origin. The served host is built at request time as `<prefix>.${DOMAIN}`.
+- **Token cache:** in-memory `Map` keyed by `service|scope`, honors
+  `expires_in` (capped to 10s–1h, refreshed 5s ahead of expiry).
+- **Redirect handling:** 301/302/303/307/308 followed manually (max 5) so the
+  worker can strip the `Authorization` header on cross-host hops and apply its
+  own anti-cache policy on the final response.
+
+## Error Responses
+
+| Status | Meaning                                                       |
+|--------|---------------------------------------------------------------|
+| `400`  | Invalid User-Agent — disallowed/missing client UA             |
+| `404`  | Unknown registry / Not Found — unmapped host or non-`/v2/` path |
+| `500`  | Token acquisition failed (logged via `console.error`)         |
+| `502`  | Too many redirects (>5)                                       |
+| `504`  | Gateway Timeout — upstream fetch threw                        |
+
+Upstream 4xx/5xx responses are passed through verbatim.
+
+## Tech Stack
+
+- TypeScript (ES Modules), `strict: true`
+- Runtime: Cloudflare Workers (`compatibility_date` in `wrangler.jsonc`,
+  `nodejs_compat` flag enabled)
+- Zero runtime dependencies; dev deps: `wrangler`, `typescript`, `vitest`,
+  `@cloudflare/vitest-pool-workers`
+- Tests use `@cloudflare/vitest-pool-workers` (Miniflare); `env` is injected
+  from `wrangler.jsonc` `vars`, so tests see `DOMAIN` automatically.
 
 ## License
 
-[MIT](LICENSE)
+This project is provided as-is for personal use.
