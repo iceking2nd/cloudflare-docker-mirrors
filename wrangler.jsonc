@@ -28,43 +28,68 @@
 	 */
 	"vars": {
 		"DOMAIN": "yourdomain.com"
-	}
+	},
 	/**
-	 * Custom domains & routes (optional)
-	 * https://developers.cloudflare.com/workers/configuration/routing/routes/
+	 * Environments
+	 * https://developers.cloudflare.com/workers/wrangler/environments/
 	 *
-	 * Before enabling, the domain's zone must be on the same Cloudflare account.
-	 * Set `zone_id` (or rely on route patterns), then uncomment the entries below.
-	 * Supported prefixes: docker / quay / gcr / ghcr / k8s / nvcr / cloudsmith / ecr
+	 * `production` overrides the top-level defaults to disable Workers Logs
+	 * and observability in production. The Worker name is pinned to the
+	 * top-level name so deploying with `--env production` updates the same
+	 * Worker instead of creating `cloudflare-docker-mirrors-production`.
+	 *
+	 * Deploy production with:
+	 *   npx wrangler deploy --env production
 	 */
-	// "zone_id": "your-zone-id",
-	/**
-	 * Custom domains — one per subdomain. `pattern` is the bare hostname.
-	 * https://developers.cloudflare.com/workers/configuration/routing/routes/#custom-domains
-	 */
-	// "routes": [
-	// 	{ "pattern": "docker.yourdomain.com", "custom_domain": true },
-	// 	{ "pattern": "quay.yourdomain.com", "custom_domain": true },
-	// 	{ "pattern": "gcr.yourdomain.com", "custom_domain": true },
-	// 	{ "pattern": "ghcr.yourdomain.com", "custom_domain": true },
-	// 	{ "pattern": "k8s.yourdomain.com", "custom_domain": true },
-	// 	{ "pattern": "nvcr.yourdomain.com", "custom_domain": true },
-	// 	{ "pattern": "cloudsmith.yourdomain.com", "custom_domain": true },
-	// 	{ "pattern": "ecr.yourdomain.com", "custom_domain": true }
-	// ],
-	/**
-	 * Custom routes — `pattern` includes a path wildcard and requires `zone_id`
-	 * (or a zone-named route). Use this when you want finer control than custom domains.
-	 * https://developers.cloudflare.com/workers/configuration/routing/routes/#route-configuration
-	 */
-	// "routes": [
-	// 	"docker.yourdomain.com/*",
-	// 	"quay.yourdomain.com/*",
-	// 	"gcr.yourdomain.com/*",
-	// 	"ghcr.yourdomain.com/*",
-	// 	"k8s.yourdomain.com/*",
-	// 	"nvcr.yourdomain.com/*",
-	// 	"cloudsmith.yourdomain.com/*",
-	// 	"ecr.yourdomain.com/*"
-	// ]
+	"env": {
+		"production": {
+			"name": "cloudflare-docker-mirrors",
+			// `vars` is NOT inherited by named environments — redeclare here
+			// so production keeps the same DOMAIN as the top-level config.
+			"vars": {
+				"DOMAIN": "yourdomain.com"
+			},
+			"observability": {
+				"enabled": false
+			},
+			/**
+			 * Custom domains & routes (optional)
+			 * https://developers.cloudflare.com/workers/configuration/routing/routes/
+			 *
+			 * Before enabling, the domain's zone must be on the same Cloudflare account.
+			 * Set `zone_id` (or rely on route patterns), then uncomment the entries below.
+			 * Supported prefixes: docker / quay / gcr / ghcr / k8s / nvcr / cloudsmith / ecr
+			 */
+			// "zone_id": "your-zone-id",
+			/**
+			 * Custom domains — one per subdomain. `pattern` is the bare hostname.
+			 * https://developers.cloudflare.com/workers/configuration/routing/routes/#custom-domains
+			 */
+			// "routes": [
+			// 	{ "pattern": "docker.yourdomain.com", "custom_domain": true },
+			// 	{ "pattern": "quay.yourdomain.com", "custom_domain": true },
+			// 	{ "pattern": "gcr.yourdomain.com", "custom_domain": true },
+			// 	{ "pattern": "ghcr.yourdomain.com", "custom_domain": true },
+			// 	{ "pattern": "k8s.yourdomain.com", "custom_domain": true },
+			// 	{ "pattern": "nvcr.yourdomain.com", "custom_domain": true },
+			// 	{ "pattern": "cloudsmith.yourdomain.com", "custom_domain": true },
+			// 	{ "pattern": "ecr.yourdomain.com", "custom_domain": true }
+			// ],
+			/**
+			 * Custom routes — `pattern` includes a path wildcard and requires `zone_id`
+			 * (or a zone-named route). Use this when you want finer control than custom domains.
+			 * https://developers.cloudflare.com/workers/configuration/routing/routes/#route-configuration
+			 */
+			// "routes": [
+			// 	"docker.yourdomain.com/*",
+			// 	"quay.yourdomain.com/*",
+			// 	"gcr.yourdomain.com/*",
+			// 	"ghcr.yourdomain.com/*",
+			// 	"k8s.yourdomain.com/*",
+			// 	"nvcr.yourdomain.com/*",
+			// 	"cloudsmith.yourdomain.com/*",
+			// 	"ecr.yourdomain.com/*"
+			// ]
+		}
+	}
 }
