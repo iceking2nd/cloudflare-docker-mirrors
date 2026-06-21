@@ -59,6 +59,17 @@ describe("docker registry mirror proxy", () => {
 		expect(await res.json()).toEqual({ error: "Not Found" });
 	});
 
+	it("accepts github.com/containers/image clients (podman/skopeo/buildah)", async () => {
+		// podman 4.9.4-rhel and friends send a UA like
+		// "containers/5.29.2 (github.com/containers/image)" — no "podman/" token.
+		const res = await call(
+			"https://docker.yourdomain.com/",
+			"containers/5.29.2 (github.com/containers/image)",
+		);
+		expect(res.status).toBe(404);
+		expect(await res.json()).toEqual({ error: "Not Found" });
+	});
+
 	it("applies anti-cache headers on error responses", async () => {
 		const res = await call("https://example.com/v2/", "docker/27.0");
 		expect(res.headers.get("cache-control")).toBe(

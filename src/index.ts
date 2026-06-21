@@ -61,12 +61,17 @@ const DOCKER_HUB_ORIGIN = "https://registry-1.docker.io";
 /**
  * User-Agent allow-list. Matched case-insensitively as substrings, so a UA
  * like "docker/27.0" or "containerd/v1.7.0" is accepted.
+ *
+ * `containers/` covers clients built on github.com/containers/image (podman,
+ * skopeo, buildah, …), whose UA looks like "containers/5.29.2
+ * (github.com/containers/image)" rather than "podman/<ver>".
  */
 const ALLOWED_UA_TOKENS: ReadonlyArray<string> = [
 	"docker/",
 	"containerd/",
 	"cri-o/",
 	"podman/",
+	"containers/",
 	"buildkit/",
 	"skopeo/",
 	"crane/",
