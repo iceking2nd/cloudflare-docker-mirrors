@@ -1,5 +1,5 @@
 /**
- * For more details on how to configure Wrangler, refer to:
+ * Wrangler configuration
  * https://developers.cloudflare.com/workers/wrangler/configuration/
  */
 {
@@ -14,22 +14,13 @@
 	"compatibility_flags": [
 		"nodejs_compat"
 	],
-	/**
-	 * Smart Placement
-	 * https://developers.cloudflare.com/workers/configuration/smart-placement/#smart-placement
-	 */
-	// "placement": {  "mode": "smart" }
-	/**
-	 * Bindings
-	 * Bindings allow your Worker to interact with resources on the Cloudflare Developer Platform, including
-	 * databases, object storage, AI inference, real-time communication and more.
-	 * https://developers.cloudflare.com/workers/runtime-apis/bindings/
-	 */
+	// Disable the default *.workers.dev URL
+	"workers_dev": false,
+	// Disable the preview URL for non-production environments
+	"preview_urls": false,
 	/**
 	 * Environment Variables
 	 * https://developers.cloudflare.com/workers/wrangler/configuration/#environment-variables
-	 * Note: Use secrets to store sensitive data.
-	 * https://developers.cloudflare.com/workers/configuration/secrets/
 	 *
 	 * DOMAIN: the apex domain the mirror is served from. Subdomain prefixes
 	 * (docker/ghcr/gcr/quay/k8s) are hardcoded; the full host is built as
@@ -39,13 +30,41 @@
 		"DOMAIN": "yourdomain.com"
 	}
 	/**
-	 * Static Assets
-	 * https://developers.cloudflare.com/workers/static-assets/binding/
+	 * Custom domains & routes (optional)
+	 * https://developers.cloudflare.com/workers/configuration/routing/routes/
+	 *
+	 * Before enabling, the domain's zone must be on the same Cloudflare account.
+	 * Set `zone_id` (or rely on route patterns), then uncomment the entries below.
+	 * Supported prefixes: docker / quay / gcr / ghcr / k8s / nvcr / cloudsmith / ecr
 	 */
-	// "assets": {  "directory": "./public/",  "binding": "ASSETS" }
+	// "zone_id": "your-zone-id",
 	/**
-	 * Service Bindings (communicate between multiple Workers)
-	 * https://developers.cloudflare.com/workers/wrangler/configuration/#service-bindings
+	 * Custom domains — one per subdomain. `pattern` is the bare hostname.
+	 * https://developers.cloudflare.com/workers/configuration/routing/routes/#custom-domains
 	 */
-	// "services": [  {   "binding": "MY_SERVICE",   "service": "my-service"  } ]
+	// "routes": [
+	// 	{ "pattern": "docker.yourdomain.com", "custom_domain": true },
+	// 	{ "pattern": "quay.yourdomain.com", "custom_domain": true },
+	// 	{ "pattern": "gcr.yourdomain.com", "custom_domain": true },
+	// 	{ "pattern": "ghcr.yourdomain.com", "custom_domain": true },
+	// 	{ "pattern": "k8s.yourdomain.com", "custom_domain": true },
+	// 	{ "pattern": "nvcr.yourdomain.com", "custom_domain": true },
+	// 	{ "pattern": "cloudsmith.yourdomain.com", "custom_domain": true },
+	// 	{ "pattern": "ecr.yourdomain.com", "custom_domain": true }
+	// ],
+	/**
+	 * Custom routes — `pattern` includes a path wildcard and requires `zone_id`
+	 * (or a zone-named route). Use this when you want finer control than custom domains.
+	 * https://developers.cloudflare.com/workers/configuration/routing/routes/#route-configuration
+	 */
+	// "routes": [
+	// 	"docker.yourdomain.com/*",
+	// 	"quay.yourdomain.com/*",
+	// 	"gcr.yourdomain.com/*",
+	// 	"ghcr.yourdomain.com/*",
+	// 	"k8s.yourdomain.com/*",
+	// 	"nvcr.yourdomain.com/*",
+	// 	"cloudsmith.yourdomain.com/*",
+	// 	"ecr.yourdomain.com/*"
+	// ]
 }
